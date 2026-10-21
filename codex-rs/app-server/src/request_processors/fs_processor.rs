@@ -179,7 +179,9 @@ impl FsRequestProcessor {
         params: FsCopyParams,
     ) -> Result<FsCopyResponse, JSONRPCErrorError> {
         if codex_config::output_filter::global().is_some() {
-            return Err(invalid_request("The global output filter blocks unvalidated file copies. Use a validated text write."));
+            return Err(invalid_request(
+                "The global output filter blocks unvalidated file copies. Use a validated text write.",
+            ));
         }
         let source_path = PathUri::from_abs_path(&params.source_path);
         let destination_path = PathUri::from_abs_path(&params.destination_path);
@@ -225,18 +227,24 @@ fn map_fs_error(err: io::Error) -> JSONRPCErrorError {
 }
 
 fn filter_read_bytes(bytes: Vec<u8>) -> Result<Vec<u8>, JSONRPCErrorError> {
-    let Some(filter) = codex_config::output_filter::global() else { return Ok(bytes); };
+    let Some(filter) = codex_config::output_filter::global() else {
+        return Ok(bytes);
+    };
     let text = String::from_utf8(bytes)
         .map_err(|_| invalid_request("The global output filter permits UTF-8 text reads only."))?;
     Ok(filter.text(&text).into_bytes())
 }
 
 fn validate_write_bytes(path: &PathUri, bytes: &[u8]) -> Result<(), JSONRPCErrorError> {
-    let Some(filter) = codex_config::output_filter::global() else { return Ok(()); };
+    let Some(filter) = codex_config::output_filter::global() else {
+        return Ok(());
+    };
     let text = std::str::from_utf8(bytes)
         .map_err(|_| invalid_request("The global output filter permits UTF-8 text writes only."))?;
     if filter.is_match(text) || filter.is_match(&path.to_string()) {
-        return Err(invalid_request("The global output filter blocked this file content or path."));
+        return Err(invalid_request(
+            "The global output filter blocked this file content or path.",
+        ));
     }
     Ok(())
 }

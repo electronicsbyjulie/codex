@@ -29,8 +29,11 @@ pub(crate) fn prepare_apply_patch(
         for (path, change) in action.changes() {
             let (content, destination) = match change {
                 ApplyPatchFileChange::Add { content } => (Some(content), None),
-                ApplyPatchFileChange::Update { new_content, move_path, .. } =>
-                    (Some(new_content), move_path.as_ref()),
+                ApplyPatchFileChange::Update {
+                    new_content,
+                    move_path,
+                    ..
+                } => (Some(new_content), move_path.as_ref()),
                 ApplyPatchFileChange::Delete { .. } => (None, None),
             };
             if filter.is_match(&path.to_string())
