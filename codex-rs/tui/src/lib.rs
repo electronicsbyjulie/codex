@@ -142,6 +142,7 @@ mod pets;
 mod security_setup;
 mod worktree_browser;
 pub use custom_terminal::Terminal;
+mod output_filter;
 mod assistant_directives;
 mod auto_review_denials;
 mod cwd_prompt;

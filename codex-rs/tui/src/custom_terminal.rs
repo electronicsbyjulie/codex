@@ -55,7 +55,7 @@ mod cursor;
 #[path = "custom_terminal_test_support.rs"]
 pub(crate) mod test_support;
 
-fn osc8_hyperlink_parts(symbol: &str) -> Option<(&str, &str)> {
+pub(crate) fn osc8_hyperlink_parts(symbol: &str) -> Option<(&str, &str)> {
     let content = symbol.strip_prefix("\x1b]8;;")?;
     let destination_end = content.find('\x07')?;
     let destination = &content[..destination_end];
@@ -298,6 +298,7 @@ where
     /// Obtains a difference between the previous and the current buffer and passes it to the
     /// current backend for drawing.
     pub fn flush(&mut self) -> io::Result<()> {
+        crate::output_filter::buffer(self.current_buffer_mut());
         let updates = diff_buffers(self.previous_buffer(), self.current_buffer());
         self.flush_updates(updates)
     }
@@ -369,6 +370,12 @@ where
         let mut frame = self.get_frame();
 
         render_callback(&mut frame);
+
+        crate::output_filter::buffer(frame.buffer);
+        if codex_config::output_filter::global().is_some() {
+            // A text regex cannot validate pixels rendered by a media protocol.
+            frame.transcript_images.clear();
+        }
 
         // We can't change the cursor position right away because we have to flush the frame to
         // stdout first. But we also can't keep the frame around, since it holds a &mut to

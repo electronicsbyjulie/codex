@@ -189,6 +189,14 @@ fn copy_to_clipboard_with(
         return Err("nothing to copy: the selected content is empty".to_string());
     }
 
+    let filtered;
+    let text = if let Some(filter) = codex_config::output_filter::global() {
+        filtered = filter.text(text);
+        filtered.as_str()
+    } else {
+        text
+    };
+
     let terminal_copy = || {
         if environment.tmux_session {
             let raw_bytes = text.len();
@@ -213,7 +221,14 @@ fn copy_to_clipboard_with(
             CopyFormat::PlainText => None,
             CopyFormat::Markdown => Some(crate::clipboard_html::render_markdown(text)),
             CopyFormat::MarkdownSelection(source) => {
-                Some(crate::clipboard_html::render_markdown(&source))
+                let filtered;
+                let source = if let Some(filter) = codex_config::output_filter::global() {
+                    filtered = filter.text(&source);
+                    filtered.as_str()
+                } else {
+                    &source
+                };
+                Some(crate::clipboard_html::render_markdown(source))
             }
         };
         arboard_copy_fn(text, html.as_deref()).map_err(|error| format!("native clipboard: {error}"))

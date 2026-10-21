@@ -116,6 +116,8 @@ where
     B: Backend<Error = io::Error> + Write,
 {
     let mut area = terminal.viewport_area;
+    let filtered = crate::output_filter::history(lines);
+    let lines = filtered.as_deref().unwrap_or(lines);
     let mut should_update_area = false;
     let last_cursor_pos = terminal.last_known_cursor_pos;
 

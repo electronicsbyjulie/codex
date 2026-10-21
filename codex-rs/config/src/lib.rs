@@ -28,6 +28,7 @@ mod mcp_types;
 mod merge;
 mod model_provider_requirements;
 mod overrides;
+pub mod output_filter;
 mod path_context;
 pub mod permissions_toml;
 mod plugin_edit;

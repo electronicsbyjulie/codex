@@ -25,6 +25,24 @@ pub(crate) fn prepare_apply_patch(
     matching: &PatchPolicyMatcher<'_>,
     action: ApplyPatchAction,
 ) -> Result<ApplyPatchRuntimeInvocation, FunctionCallError> {
+    if let Some(filter) = codex_config::output_filter::global() {
+        for (path, change) in action.changes() {
+            let (content, destination) = match change {
+                ApplyPatchFileChange::Add { content } => (Some(content), None),
+                ApplyPatchFileChange::Update { new_content, move_path, .. } =>
+                    (Some(new_content), move_path.as_ref()),
+                ApplyPatchFileChange::Delete { .. } => (None, None),
+            };
+            if filter.is_match(&path.to_string())
+                || destination.is_some_and(|path| filter.is_match(&path.to_string()))
+                || content.is_some_and(|content| filter.is_match(content))
+            {
+                return Err(FunctionCallError::RespondToModel(
+                    "The global output filter blocked the resulting file content or path. Rephrase the patch without quoting the matched text.".to_owned(),
+                ));
+            }
+        }
+    }
     match assess_patch_safety(
         &action,
         step_context.settings.approval_policy(),

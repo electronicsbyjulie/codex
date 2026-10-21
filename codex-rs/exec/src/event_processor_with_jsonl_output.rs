@@ -103,6 +103,14 @@ impl EventProcessorWithJsonOutput {
 
     #[allow(clippy::print_stdout)]
     fn emit(&self, event: ThreadEvent) {
+        if codex_config::output_filter::global().is_some() {
+            if let Ok(json) = serde_json::to_string(&event)
+                && let Some(filtered) = codex_config::output_filter::wire_json(json)
+            {
+                println!("{filtered}");
+            }
+            return;
+        }
         println!(
             "{}",
             serde_json::to_string(&event).unwrap_or_else(|err| {

@@ -618,6 +618,7 @@ impl ToolRegistry {
         call_state: Option<Arc<ToolCallState>>,
     ) -> Result<AnyToolResult, FunctionCallError> {
         let cancellation_token = invocation.cancellation_token.clone();
+        crate::output_filter::check_tool(&invocation)?;
         let tool_name = invocation.tool_name.clone();
         let call_id_owned = invocation.call_id.clone();
         let otel = invocation
@@ -753,6 +754,8 @@ impl ToolRegistry {
             }
         }
 
+        // Hooks can replace arguments. Validate the actual input again before execution.
+        crate::output_filter::check_tool(&invocation)?;
         if tool.mcp_server_name().is_none() {
             notify_tool_start(&invocation, /*mcp_tool*/ None)
                 .or_cancel_tool(&cancellation_token)

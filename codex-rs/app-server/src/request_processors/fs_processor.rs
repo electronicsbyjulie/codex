@@ -72,7 +72,7 @@ impl FsRequestProcessor {
             .await
             .map_err(map_fs_error)?;
         Ok(FsReadFileResponse {
-            data_base64: STANDARD.encode(bytes),
+            data_base64: STANDARD.encode(filter_read_bytes(bytes)?),
         })
     }
 
@@ -86,6 +86,7 @@ impl FsRequestProcessor {
             ))
         })?;
         let path = PathUri::from_abs_path(&params.path);
+        validate_write_bytes(&path, &bytes)?;
         self.file_system()?
             .write_file(&path, bytes, Default::default(), /*sandbox*/ None)
             .await
@@ -177,6 +178,9 @@ impl FsRequestProcessor {
         &self,
         params: FsCopyParams,
     ) -> Result<FsCopyResponse, JSONRPCErrorError> {
+        if codex_config::output_filter::global().is_some() {
+            return Err(invalid_request("The global output filter blocks unvalidated file copies. Use a validated text write."));
+        }
         let source_path = PathUri::from_abs_path(&params.source_path);
         let destination_path = PathUri::from_abs_path(&params.destination_path);
         self.file_system()?
@@ -218,4 +222,21 @@ fn map_fs_error(err: io::Error) -> JSONRPCErrorError {
     } else {
         internal_error(err.to_string())
     }
+}
+
+fn filter_read_bytes(bytes: Vec<u8>) -> Result<Vec<u8>, JSONRPCErrorError> {
+    let Some(filter) = codex_config::output_filter::global() else { return Ok(bytes); };
+    let text = String::from_utf8(bytes)
+        .map_err(|_| invalid_request("The global output filter permits UTF-8 text reads only."))?;
+    Ok(filter.text(&text).into_bytes())
+}
+
+fn validate_write_bytes(path: &PathUri, bytes: &[u8]) -> Result<(), JSONRPCErrorError> {
+    let Some(filter) = codex_config::output_filter::global() else { return Ok(()); };
+    let text = std::str::from_utf8(bytes)
+        .map_err(|_| invalid_request("The global output filter permits UTF-8 text writes only."))?;
+    if filter.is_match(text) || filter.is_match(&path.to_string()) {
+        return Err(invalid_request("The global output filter blocked this file content or path."));
+    }
+    Ok(())
 }

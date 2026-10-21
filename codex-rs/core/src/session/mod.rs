@@ -2463,6 +2463,7 @@ impl Session {
 
     /// Persist the event to rollout and send it to clients.
     pub(crate) async fn send_event(&self, turn_context: &TurnContext, msg: EventMsg) {
+        let Some(msg) = crate::output_filter::event(msg) else { return; };
         let legacy_source = msg.clone();
         if let EventMsg::Error(error) = &legacy_source
             && error
@@ -2675,6 +2676,8 @@ impl Session {
     }
 
     async fn send_event_raw_with_persistence(&self, event: Event, persist: bool) {
+        let Some(msg) = crate::output_filter::event(event.msg) else { return; };
+        let event = Event { id: event.id, msg };
         let flush_guardian_completion = persist
             && matches!(event.msg, EventMsg::TurnComplete(_))
             && self.is_private_guardian_reviewer().await;
@@ -4790,6 +4793,16 @@ impl Session {
 
     #[tracing::instrument(level = "trace", skip_all, fields(item_count = items.len()))]
     pub(crate) async fn persist_rollout_items(&self, items: &[RolloutItem]) -> bool {
+        let filtered;
+        let items = if let Some(filter) = codex_config::output_filter::global() {
+            let Some(values) = items.iter().map(|item| filter.typed(item)).collect::<Option<Vec<_>>>() else {
+                return false;
+            };
+            filtered = values;
+            filtered.as_slice()
+        } else {
+            items
+        };
         if let Some(live_thread) = self.live_thread()
             && let Err(e) = live_thread.append_items(items).await
         {

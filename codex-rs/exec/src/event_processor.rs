@@ -40,6 +40,16 @@ pub(crate) fn handle_last_message(last_agent_message: Option<&str>, output_file:
 }
 
 fn write_last_message_file(contents: &str, last_message_path: Option<&Path>) {
+    let filtered;
+    let contents = if let Some(filter) = codex_config::output_filter::global() {
+        if last_message_path.is_some_and(|path| filter.is_match(&path.to_string_lossy())) {
+            return;
+        }
+        filtered = filter.text(contents);
+        filtered.as_str()
+    } else {
+        contents
+    };
     if let Some(path) = last_message_path
         && let Err(e) = std::fs::write(path, contents)
     {

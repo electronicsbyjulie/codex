@@ -3694,6 +3694,41 @@
       },
       "type": "object"
     },
+    "OutputFilterConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/OutputFilterRule"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "OutputFilterRule": {
+      "additionalProperties": false,
+      "properties": {
+        "exempt_pattern": {
+          "description": "An optional regex that must match the entire candidate to exempt it.",
+          "type": "string"
+        },
+        "pattern": {
+          "description": "Rust regex syntax. Matching is case-sensitive unless `(?i)` is present.",
+          "type": "string"
+        },
+        "replacement": {
+          "default": "[filtered]",
+          "description": "Literal replacement text; capture expansion is intentionally disabled.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "type": "object"
+    },
     "PermissionProfileToml": {
       "additionalProperties": false,
       "properties": {
@@ -8064,6 +8099,14 @@
         }
       ],
       "description": "OTEL configuration."
+    },
+    "output_filter": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/OutputFilterConfig"
+        }
+      ],
+      "description": "Global accessibility rules. Only the base user layer supplies this policy."
     },
     "permissions": {
       "allOf": [

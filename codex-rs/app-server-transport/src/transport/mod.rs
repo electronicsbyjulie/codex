@@ -271,7 +271,7 @@ async fn enqueue_incoming_message(
 
 fn serialize_outgoing_message(outgoing_message: OutgoingMessage) -> Option<String> {
     match serde_json::to_string(&outgoing_message) {
-        Ok(json) => Some(json),
+        Ok(json) => codex_config::output_filter::wire_json(json),
         Err(err) => {
             error!("Failed to serialize JSONRPCMessage: {err}");
             let OutgoingMessage::Response(response) = outgoing_message else {
@@ -280,6 +280,7 @@ fn serialize_outgoing_message(outgoing_message: OutgoingMessage) -> Option<Strin
             serde_json::to_string(&response_serialization_error(response.id, err))
                 .inspect_err(|err| error!("Failed to serialize JSONRPC error: {err}"))
                 .ok()
+                .and_then(codex_config::output_filter::wire_json)
         }
     }
 }

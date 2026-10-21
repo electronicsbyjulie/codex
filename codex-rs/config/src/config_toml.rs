@@ -164,6 +164,9 @@ pub struct FeatureToggleToml {
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, JsonSchema)]
 #[schemars(deny_unknown_fields)]
 pub struct ConfigToml {
+    /// Global accessibility rules. Only the base user layer supplies this policy.
+    pub output_filter: Option<crate::output_filter::OutputFilterConfig>,
+
     /// Optional override of model selection.
     pub model: Option<String>,
     /// Default Daybreak preference for new threads and non-interactive turns.

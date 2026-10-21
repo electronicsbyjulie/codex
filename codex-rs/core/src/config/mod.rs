@@ -1602,6 +1602,7 @@ impl ConfigBuilder {
 }
 
 async fn config_toml_from_layers(layers: &ConfigLayerStack) -> std::io::Result<ConfigToml> {
+    codex_config::output_filter::initialize_from_layers(layers)?;
     // The loader resolves paths relative to each layer's file before deserialization.
     match layers.effective_config().try_into() {
         Ok(config_toml) => Ok(config_toml),
@@ -3304,6 +3305,7 @@ impl Config {
     ) -> std::io::Result<Self> {
         // Keep the large config-construction future off small test thread stacks.
         Box::pin(async move {
+        codex_config::output_filter::initialize_from_layers(&config_layer_stack)?;
         if cfg.experimental_thread_store_endpoint.is_some() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
